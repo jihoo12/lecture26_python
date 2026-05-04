@@ -28,3 +28,6 @@ emacs
 vi
 axiom
 recursion
+vector
+calculus
+algebra
