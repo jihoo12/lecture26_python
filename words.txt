@@ -31,3 +31,6 @@ recursion
 vector
 calculus
 algebra
+morphism
+monad
+functor
