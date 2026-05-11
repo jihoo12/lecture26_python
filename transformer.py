@@ -134,4 +134,4 @@ else:
 
     # --- 최종 문장 생성 ---
     print("\n--- 생성 결과 ---")
-    print(generate_text(model, "what is the death?", char_to_int, int_to_char, seq_length, length=5000))
+    print(generate_text(model, "joy", char_to_int, int_to_char, seq_length, length=5000))
