@@ -49,11 +49,19 @@ DATA_PATH = 'data.txt' # 학습할 파일명
 def load_data(file_path):
     with open(file_path, 'r', encoding='utf-8') as f:
         text = f.read()
-    chars = sorted(list(set(text)))
-    char_to_int = {ch: i for i, ch in enumerate(chars)}
-    int_to_char = {i: ch for i, ch in enumerate(chars)}
-    data = torch.tensor([char_to_int[ch] for ch in text], dtype=torch.long)
-    return data, char_to_int, int_to_char, len(chars)
+    
+    # 문장 부호를 단어와 분리하기 위해 공백을 추가하는 전처리가 필요할 수 있습니다.
+    # 단순하게는 공백 기준으로 쪼갭니다.
+    words = text.split() 
+    
+    vocab = sorted(list(set(words))) # 중복 없는 단어 사전
+    word_to_int = {w: i for i, w in enumerate(vocab)}
+    int_to_word = {i: w for i, w in enumerate(vocab)}
+    
+    # 텍스트를 정수 시퀀스로 변환
+    data = torch.tensor([word_to_int[w] for w in words], dtype=torch.long)
+    
+    return data, word_to_int, int_to_word, len(vocab)
 
 def get_batch(data, seq_length, batch_size):
     ix = torch.randint(len(data) - seq_length, (batch_size,))
@@ -61,20 +69,30 @@ def get_batch(data, seq_length, batch_size):
     y = torch.stack([data[i+1:i+seq_length+1] for i in ix])
     return x.to(device), y.to(device)
 
-def generate_text(model, start_str, char_to_int, int_to_char, seq_length, length=100, temperature=0.8):
+def generate_text(model, start_str, word_to_int, int_to_word, seq_length, length=100, temperature=0.8):
     model.eval()
-    input_indices = [char_to_int[ch] for ch in start_str]
-    generated = input_indices[:]
+    # 시작 문자열도 단어 단위로 쪼개야 합니다.
+    input_words = start_str.split()
+    generated_indices = [word_to_int[w] for w in input_words if w in word_to_int]
+    
+    if not generated_indices: # 사전에 단어가 없으면 기본값 설정
+        generated_indices = [0]
+
     with torch.no_grad():
         for _ in range(length):
-            curr_input = torch.tensor([generated[-seq_length:]]).to(device)
+            # 입력 시퀀스 준비
+            curr_input = torch.tensor([generated_indices[-seq_length:]]).to(device)
             mask = generate_square_subsequent_mask(curr_input.size(1), device)
+            
             output = model(curr_input, mask)
             logits = output[0, -1] / temperature
             probs = torch.softmax(logits, dim=-1)
-            next_char_idx = torch.multinomial(probs, num_samples=1).item()
-            generated.append(next_char_idx)
-    return ''.join([int_to_char[i] for i in generated])
+            
+            next_word_idx = torch.multinomial(probs, num_samples=1).item()
+            generated_indices.append(next_word_idx)
+            
+    # 단어들을 공백으로 이어서 반환
+    return ' '.join([int_to_word[i] for i in generated_indices])
 
 # --- 3. 실행 로직 ---
 
@@ -109,7 +127,7 @@ else:
         criterion = nn.CrossEntropyLoss()
         
         model.train()
-        for epoch in range(10000): # 넉넉히 5000번 학습
+        for epoch in range(5000): # 넉넉히 5000번 학습
             src, targets = get_batch(data, seq_length, batch_size)
             mask = generate_square_subsequent_mask(seq_length, device)
             output = model(src, mask)
@@ -134,4 +152,4 @@ else:
 
     # --- 최종 문장 생성 ---
     print("\n--- 생성 결과 ---")
-    print(generate_text(model, "joy", char_to_int, int_to_char, seq_length, length=5000))
+    print(generate_text(model, "faith", char_to_int, int_to_char, seq_length, length=1000))
