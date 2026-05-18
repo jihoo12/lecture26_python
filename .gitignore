@@ -1,3 +1,5 @@
 .venv
 model.pth
 data.txt
+test/__pycache__
+__pycache__
