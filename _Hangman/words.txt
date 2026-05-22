@@ -34,3 +34,16 @@ algebra
 morphism
 monad
 functor
+coinduction
+sheaf
+monoid
+profunctor
+rocq
+currying
+lisp
+scope
+wayland
+tao
+idea
+set
+
